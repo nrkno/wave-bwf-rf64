@@ -1,0 +1,17 @@
+Modules:
+
+chunk.py            Original python module for handling RIFF chunks
+wave_bext.py        Extension of original wave.py module with BWF handling added (bext, chna, axml chunks).
+
+To setup distribution:
+> python setup.py sdist
+this will produce a 'dist' directory containing wave_bwf-1.0.tar.gz which can be released.
+
+To install modules:
+In 'dist':
+> tar -xzf wave_bwf-1.0.tar.gz
+> cd wave_bwf-1.0
+> sudo python setup.py install
+
+
+

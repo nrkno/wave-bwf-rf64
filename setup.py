@@ -1,0 +1,10 @@
+from distutils.core import setup
+setup(name='wave_bwf_levl_RF64',
+      version='1.0.1',
+      description='Python modules for handling Broadcast Wave Format files. \
+      Updated to also handle the levl chunk and reading of RF64 files.',
+      author='David Marston',
+      author_email='david.marston@bbc.co.uk',
+      url='http://data.bbcarp.org.uk/saqas/',
+      license="GNU GPLv3",
+      py_modules=['wave_bwf_levl_RF64', 'chunk_levl_RF64'],)
