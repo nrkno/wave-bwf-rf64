@@ -45,7 +45,7 @@ This returns an instance of a class with the following public methods:
       setpos(pos)     -- seek to the specified position
       tell()          -- return the current position
       close()         -- close the instance (make it unusable)
-      
+
 The position returned by tell() and the position given to setpos()
 are compatible and have nothing to do with the actual position in the
 file.
@@ -109,7 +109,7 @@ bext chunk methods:
       set_bext_max_short_term_loudness(n)   -- set max momentary loudness (float)
       set_bext_coding_history(string)       -- set coding history (any number of chars)
       set_bext()                            -- update bext chunk before writing to file (must be done)
-      
+
 You should set the parameters before the first writeframesraw or
 writeframes.  The total number of frames does not need to be set,
 but when it is set to the correct value, the header does not have to
@@ -130,6 +130,7 @@ class Error(Exception):
     pass
 
 WAVE_FORMAT_PCM = 0x0001
+WAVE_FORMAT_MPEG = 0x0050
 WAVE_FORMAT_EXTENSIBLE = 0xFFFE
 
 _array_fmts = None, 'b', 'h', None, 'l'
@@ -190,14 +191,14 @@ class Bext:
             chunk += struct.pack('<h', self._max_short_term_loudness)
         else:
             for i in range(0, 10):
-                chunk += '\0'     
+                chunk += '\0'
         for i in range(0, 180):
             chunk += '\0'
         chunk += self._coding_history
         if (len(self._coding_history) % 2) == 1:
             chunk += '\0'
         return chunk
-       
+
     def unpack_chunk(self, chunk):
         chunk.seek(0, 0)
         self._description = struct.unpack('<0256s', chunk.read(256))[0]
@@ -214,7 +215,7 @@ class Bext:
         chunk.read(1)
         self._origination_time[2] = int(struct.unpack('<02s', chunk.read(2))[0])
         self._time_reference[0], self._time_reference[1] = struct.unpack('<ll', chunk.read(8))
-        self._version = struct.unpack('<h', chunk.read(2))[0]        
+        self._version = struct.unpack('<h', chunk.read(2))[0]
 
         for i in range(0, 64):
             self._umid[i] = struct.unpack('<c', chunk.read(1))[0]
@@ -266,13 +267,13 @@ class Bext:
         chunk += struct.pack('<h', self._max_momentary_loudness)
         chunk += struct.pack('<h', self._max_short_term_loudness)
         return chunk
-        
+
 class Chna:
     def __init__(self):
         self._num_tracks = 0
         self._num_uids = 0
         self._ch_id = []
-        
+
     def add_new_track(self, track_idx, track_uid, track_ref, pack_ref):
         ch_id = []
         ch_id.append(track_idx)   # WORD
@@ -336,7 +337,7 @@ class Chna:
             chunk.read(1)                   # padding
             self._ch_id.append(ch_id)
 
-        
+
 class Wave_read:
     """Variables used in this class:
 
@@ -371,9 +372,9 @@ class Wave_read:
     def initfp(self, file):
         self._convert = None
         self._soundpos = 0
-        self._file = Chunk(file, bigendian = 0)
-        #** Check for RF64 header
-        #** If present, read special chunk
+        self._file = Chunk(file, bigendian=0)
+        # ** Check for RF64 header
+        # ** If present, read special chunk
         if self._file.getname() not in ['RIFF', 'RF64']:#** Support RF64
             raise Error, 'file does not start with RIFF id'
         if self._file.read(4) != 'WAVE':
@@ -382,24 +383,19 @@ class Wave_read:
         self._data_chunk = None
         self._bext_chunk = None
         self._axml_chunk = None
+        self._md5_chunk = None
         self._levl_chunk = None
         self._chna_chunk = None
         self._bext = Bext()
         self._chna = Chna()
 
-        #TEST
-        #print self._file.getsize()
-        #self._file.setsize(2)
-        #print self._file.getsize()
-
-
-        #Check for RF64
+        # Check for RF64
         if self._file.getname() == 'RF64':
             self._RF64 = True
-            ds64 = Chunk(self._file, bigendian = 0)
+            ds64 = Chunk(self._file, bigendian=0)
             self._read_ds64_chunk(ds64)
 
-            #Correct the filelength
+            # Correct the file length
             self._file.setsize(self._riffSize)
 
         else:
@@ -409,7 +405,8 @@ class Wave_read:
         while 1:
             self._data_seek_needed = 1
             try:
-                chunk = Chunk(self._file, bigendian=0, set_data_chunk_size=self.dataSize) #** RF64 set new data length
+                # RF64 set new data length
+                chunk = Chunk(self._file, bigendian=0, set_data_chunk_size=self.dataSize)
             except EOFError:
                 break
             chunkname = chunk.getname()
@@ -417,21 +414,23 @@ class Wave_read:
                 self._read_fmt_chunk(chunk)
                 self._fmt_chunk_read = 1
             elif chunkname == 'data':
-                #** RF64 check real length
+                # ** RF64 check real length
                 if not self._fmt_chunk_read:
                     raise Error, 'data chunk before fmt chunk'
                 self._data_chunk = chunk
-                self._nframes = chunk.chunksize // self._framesize #** Chunksize may be FFFFFFFF read real length from separate chunk
+                self._nframes = chunk.chunksize // self._framesize  # ** Chunksize may be FFFFFFFF read real length from separate chunk
                 self._data_seek_needed = 0
-                #break
+                # break
             elif chunkname == "bext":
                 self._bext_chunk = chunk
             elif chunkname == "axml":
                 self._axml_chunk = chunk
+            elif chunkname == "MD5 ":
+                self._md5_chunk = chunk
             elif chunkname == "levl":
                 self._levl_chunk = chunk
             elif chunkname == "chna":
-                self._chna_chunk = chunk   
+                self._chna_chunk = chunk
             chunk.skip()
         if not self._fmt_chunk_read or not self._data_chunk:
             raise Error, 'fmt chunk and/or data chunk missing'
@@ -543,7 +542,7 @@ class Wave_read:
         if not self._bext_chunk:
             return False
         self._bext.unpack_chunk(self._bext_chunk)
-        return True        
+        return True
 
     def get_bext_description(self):
         return self._bext._description
@@ -553,50 +552,58 @@ class Wave_read:
 
     def get_bext_originator_reference(self):
         return self._bext._originator_reference
-     
+
     def get_bext_origination_date(self):
         return self._bext._origination_date
- 
+
     def get_bext_origination_time(self):
         return self._bext._origination_time
-    
+
     def get_bext_time_reference(self):
         return self._bext._time_reference
-     
+
     def get_bext_umid(self):
-        return self._bext._umid    
+        return self._bext._umid
 
     def get_bext_version(self):
-        return self._bext._version    
+        return self._bext._version
 
     def get_bext_loudness_value(self):
         return self._bext.scaledown(self._bext._loudness_value)
 
     def get_bext_loudness_range(self):
         return self._bext.scaledown(self._bext._loudness_range)
-  
+
     def get_bext_max_true_peak_level(self):
         return self._bext.scaledown(self._bext._max_true_peak_level)
-   
+
     def get_bext_max_momentary_loudness(self):
         return self._bext.scaledown(self._bext._max_momentary_loudness)
-        
+
     def get_bext_max_short_term_loudness(self):
         return self._bext.scaledown(self._bext._max_short_term_loudness)
-        
+
     def get_bext_coding_history(self):
         return self._bext._coding_history
 
     def get_bext_chunk(self):
         self._bext.unpack_chunk(self._bext_chunk)
         return self._bext.pack_chunk()
-        
+
     def read_axml(self):
         if self._axml_chunk != None:
             self._axml_chunk.seek(0, 0)
         else:
             return False
         data = self._axml_chunk.read()
+        return data
+
+    def read_md5(self):
+        if self._md5_chunk != None:
+            self._md5_chunk.seek(0, 0)
+        else:
+            return False
+        data = self._md5_chunk.read()
         return data
 
     def read_levl(self):
@@ -620,7 +627,7 @@ class Wave_read:
         if not self._chna_chunk:
             return False
         self._chna.unpack_chunk(self._chna_chunk)
-        return True        
+        return True
 
     #
     # Internal methods.
@@ -629,8 +636,14 @@ class Wave_read:
     def _read_fmt_chunk(self, chunk):
         wFormatTag, self._nchannels, self._framerate, dwAvgBytesPerSec, wBlockAlign = struct.unpack('<Hhllh', chunk.read(14))
         if wFormatTag == WAVE_FORMAT_PCM:
+            # print (wFormatTag, self._nchannels, self._framerate, dwAvgBytesPerSec, wBlockAlign)
             sampwidth = struct.unpack('<h', chunk.read(2))[0]
             self._sampwidth = (sampwidth + 7) // 8
+        elif wFormatTag == WAVE_FORMAT_MPEG:
+            self._comptype = 'MPEG'
+            self._compname = 'MPEG encoded'
+            return
+
         elif wFormatTag == WAVE_FORMAT_EXTENSIBLE:
             sampwidth, cbSize = struct.unpack('<hh', chunk.read(4))
             self._sampwidth = (sampwidth + 7) // 8
@@ -699,11 +712,12 @@ class Wave_write:
         self._datalength = 0
         self._bext_chunk_data = None
         self._axml_chunk_data = None
+        self._md5_chunk_data = None
         self._levl_chunk_data = None
         self._chna_chunk_data = None
         self._bext = Bext()
         self._chna = Chna()
-        
+
     def __del__(self):
         self.close()
 
@@ -825,6 +839,8 @@ class Wave_write:
                 self._write_axml_chunk()
             if self._levl_chunk_data:
                 self._write_levl_chunk()
+            if self._md5_chunk_data:
+                self._write_md5_chunk()
             self._file.flush()
             self._file = None
         if self._i_opened_the_file:
@@ -839,19 +855,19 @@ class Wave_write:
 
     def set_bext_originator_reference(self, val):
         self._bext._originator_reference = val
-     
+
     def set_bext_origination_date(self, val):
         self._bext._origination_date = val
- 
+
     def set_bext_origination_time(self, val):
         self._bext._origination_time = val
-    
+
     def set_bext_time_reference(self, val):
         self._bext._time_reference = val
-     
+
     def set_bext_umid(self, val):
         self._bext._umid = val
-        
+
     def set_bext_loudness_value(self, val):
         self._bext._loudness_value = self._bext.scaleup(val)
         self._bext._version = 2
@@ -869,7 +885,7 @@ class Wave_write:
         self._bext._version = 2
 
     def set_bext_max_short_term_loudness(self, val):
-        self._bext._max_short_term_loudness = self._bext.scaleup(val)  
+        self._bext._max_short_term_loudness = self._bext.scaleup(val)
         self._bext._version = 2
 
     def set_bext_coding_history(self, val):
@@ -888,17 +904,22 @@ class Wave_write:
         if (len(self._axml_chunk_data) % 2) == 1:
             self._axml_chunk_data += ' '
 
+    def set_md5(self, data):
+        self._md5_chunk_data = data
+        if (len(self._md5_chunk_data) % 2) == 1:
+            self._md5_chunk_data += ' '
+
     def set_levl(self, data):
         self._levl_chunk_data = data
         if (len(self._levl_chunk_data) % 2) == 1:
             self._levl_chunk_data += ' '#Vet ikke om denne behøves
-        
+
     def chna_add_new_track(self, track_idx, track_uid, track_ref, pack_ref):
         self._chna.add_new_track(track_idx, track_uid, track_ref, pack_ref)
 
     def chna_add_existing_track(self, track_idx, track_uid, track_ref, pack_ref):
         self._chna.add_existing_track(track_idx, track_uid, track_ref, pack_ref)
-        
+
     def set_chna(self):
         self._chna_chunk_data = self._chna.pack_chunk()
 
@@ -980,6 +1001,8 @@ class Wave_write:
             new_size += len(self._chna_chunk_data) + 8
         if self._axml_chunk_data:           # axml chunk size
             new_size += len(self._axml_chunk_data) + 8
+        if self._md5_chunk_data:           # md5  chunk size
+            new_size += len(self._md5_chunk_data) + 8
         if self._levl_chunk_data:           # levl chunk size
             new_size += len(self._levl_chunk_data) + 8
         if self._type == 'RF64':
@@ -1005,11 +1028,15 @@ class Wave_write:
         self._file.write(struct.pack('<l', len(self._axml_chunk_data)))
         self._file.write(self._axml_chunk_data)
 
+    def _write_md5_chunk(self):
+        self._file.write(struct.pack('<4s', 'MD5 '))
+        self._file.write(struct.pack('<l', 16))
+        self._file.write(struct.pack('>16s', self._md5_chunk_data[::-1]))
+
     def _write_levl_chunk(self):
         self._file.write(struct.pack('<4s', 'levl'))
         self._file.write(struct.pack('<l', len(self._levl_chunk_data)))
         self._file.write(self._levl_chunk_data)
-        print 'write_levl_chunk'
 
     def _write_chna_chunk(self):
         self._file.write(struct.pack('<4s', 'chna'))
