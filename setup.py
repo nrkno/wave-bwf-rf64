@@ -1,7 +1,9 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 from distutils.core import setup
 setup(name='wave_bwf_levl_RF64',
       version='1.0.3',
-      description='Python modules for handling Broadcast Wave Format files. \
+      description=u'Python modules for handling Broadcast Wave Format files. \
       Updated to also handle the levl and md5 chunk and reading of RF64 files. \
       This work was done by Tormod Værvågen of NRK (Norsk rikskringkasing).',
       author='David Marston',
