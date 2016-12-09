@@ -130,6 +130,8 @@ class Error(Exception):
     pass
 
 WAVE_FORMAT_PCM = 0x0001
+# Not supported, as the parsing that existed just blew up with an AttributeError on
+# read/open..
 WAVE_FORMAT_MPEG = 0x0050
 WAVE_FORMAT_EXTENSIBLE = 0xFFFE
 
@@ -636,14 +638,8 @@ class Wave_read:
     def _read_fmt_chunk(self, chunk):
         wFormatTag, self._nchannels, self._framerate, dwAvgBytesPerSec, wBlockAlign = struct.unpack('<Hhllh', chunk.read(14))
         if wFormatTag == WAVE_FORMAT_PCM:
-            # print (wFormatTag, self._nchannels, self._framerate, dwAvgBytesPerSec, wBlockAlign)
             sampwidth = struct.unpack('<h', chunk.read(2))[0]
             self._sampwidth = (sampwidth + 7) // 8
-        elif wFormatTag == WAVE_FORMAT_MPEG:
-            self._comptype = 'MPEG'
-            self._compname = 'MPEG encoded'
-            return
-
         elif wFormatTag == WAVE_FORMAT_EXTENSIBLE:
             sampwidth, cbSize = struct.unpack('<hh', chunk.read(4))
             self._sampwidth = (sampwidth + 7) // 8
