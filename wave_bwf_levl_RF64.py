@@ -249,6 +249,7 @@ class Bext:
         return x
 
     def generate_coding_history(self, framerate, sampwidth, nchannels):
+        """The format of the coding_history is based on EBU R98-1999"""
         if nchannels == 1:
             chnstr = 'mono'
         elif nchannels == 2:
