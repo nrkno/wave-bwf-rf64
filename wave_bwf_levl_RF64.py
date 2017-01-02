@@ -893,6 +893,17 @@ class Wave_write:
             self._bext.generate_coding_history(self._framerate, self._sampwidth, self._nchannels)
         self._bext_chunk_data = self._bext.pack_chunk()
 
+    def update_bext_coding_history(self):
+        """This will update an existing bext coding history chunk with a new line."""
+        old_history = self._bext._coding_history
+        self._bext.generate_coding_history(self._framerate, self._sampwidth, self._nchannels)
+        history_addition = self._bext._coding_history
+        # Only add a newline to the old one if it didn't have one
+        if old_history.endswith('\r\n'):
+            self._bext._coding_history = old_history + history_addition
+        else:
+            self.bext._coding_history = old_history + '\r\n' + history_addition
+
     def copy_bext(self, _bext_chunk):
         self._bext_chunk_data = _bext_chunk
 
