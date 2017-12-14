@@ -122,12 +122,15 @@ The close() method is called automatically when the class instance
 is destroyed.
 """
 
-import __builtin__
+# import __builtin__
+import builtins
 
 __all__ = ["open", "openfp", "Error"]
 
+
 class Error(Exception):
     pass
+
 
 WAVE_FORMAT_PCM = 0x0001
 # Not supported, as the parsing that existed just blew up with an AttributeError on
@@ -137,15 +140,17 @@ WAVE_FORMAT_EXTENSIBLE = 0xFFFE
 
 _array_fmts = None, 'b', 'h', None, 'l'
 
-# Determine endian-ness
+import audioop
 import struct
-if struct.pack("h", 1) == "\000\001":
-    big_endian = 1
-else:
-    big_endian = 0
+import sys
 
 from chunk_levl_RF64 import Chunk
-from datetime import *
+from collections import namedtuple
+from datetime import datetime
+
+_wave_params = namedtuple('_wave_params',
+                          'nchannels sampwidth framerate nframes comptype compname')
+
 
 class Bext:
     def __init__(self):
@@ -157,29 +162,35 @@ class Bext:
         self._origination_time = [now.hour, now.minute, now.second]
         self._time_reference = [0, 0]
         self._version = 1
-        self._umid = ['\0']*64
+        self._umid = [b'\0']*64
         self._loudness_value = 0x7fff
         self._loudness_range = 0x7fff
         self._max_true_peak_level = 0x7fff
         self._max_momentary_loudness = 0x7fff
         self._max_short_term_loudness = 0x7fff
-        self._coding_history = ''
+        self._coding_history = b''
         self._loudness_params_pos = 344
 
     def pack_chunk(self):
         chunk = struct.pack('<0256s', self._description)
         chunk += struct.pack('<032s', self._originator)
         chunk += struct.pack('<032s', self._originator_reference)
-        chunk += struct.pack('<04s', ("{0:04d}".format(self._origination_date[0])))
-        chunk += '-'
-        chunk += struct.pack('<02s', ("{0:02d}".format(self._origination_date[1])))
-        chunk += '-'
-        chunk += struct.pack('<02s', ("{0:02d}".format(self._origination_date[2])))
-        chunk += struct.pack('<02s', ("{0:02d}".format(self._origination_time[0])))
-        chunk += '-'
-        chunk += struct.pack('<02s', ("{0:02d}".format(self._origination_time[1])))
-        chunk += '-'
-        chunk += struct.pack('<02s', ("{0:02d}".format(self._origination_time[2])))
+        chunk += struct.pack('<04s', ('{0:04d}'.format(
+            self._origination_date[0]).encode('utf-8')))
+        chunk += b'-'
+        chunk += struct.pack('<02s', ('{0:02d}'.format(
+            self._origination_date[1]).encode('utf-8')))
+        chunk += b'-'
+        chunk += struct.pack('<02s', ('{0:02d}'.format(
+            self._origination_date[2]).encode('utf-8')))
+        chunk += struct.pack('<02s', ('{0:02d}'.format(
+            self._origination_time[0]).encode('utf-8')))
+        chunk += b'-'
+        chunk += struct.pack('<02s', ('{0:02d}'.format(
+            self._origination_time[1]).encode('utf-8')))
+        chunk += b'-'
+        chunk += struct.pack('<02s', ('{0:02d}'.format(
+            self._origination_time[2]).encode('utf-8')))
         chunk += struct.pack('<ll', self._time_reference[0], self._time_reference[1])
         chunk += struct.pack('<h', self._version)
         for i in range(0, 64):
@@ -193,12 +204,12 @@ class Bext:
             chunk += struct.pack('<h', self._max_short_term_loudness)
         else:
             for i in range(0, 10):
-                chunk += '\0'
+                chunk += b'\0'
         for i in range(0, 180):
-            chunk += '\0'
+            chunk += b'\0'
         chunk += self._coding_history
         if (len(self._coding_history) % 2) == 1:
-            chunk += '\0'
+            chunk += b'\0'
         return chunk
 
     def unpack_chunk(self, chunk):
@@ -251,14 +262,15 @@ class Bext:
     def generate_coding_history(self, framerate, sampwidth, nchannels):
         """The format of the coding_history is based on EBU R98-1999"""
         if nchannels == 1:
-            chnstr = 'mono'
+            chnstr = b'mono'
         elif nchannels == 2:
-            chnstr = 'stereo'
+            chnstr = b'stereo'
         else:
-            chnstr = "%d" % (nchannels)
-        self._coding_history = "A=PCM,F=%u,W=%hu,M=%s,T=%s-%s\r\n" % (framerate, sampwidth * 8, chnstr, 'wave.py', '2.0')
+            chnstr = b'%d' % (nchannels)
+        self._coding_history = b'A=PCM,F=%u,W=%hu,M=%s,T=%s-%s\r\n' % (
+            framerate, sampwidth * 8, chnstr, b'wave_bwf_levl_RF64.py', b'1.0.6')
         if (len(self._coding_history) % 2) == 1:
-            self._coding_history += '\0'
+            self._coding_history += b'\0'
 
     def loudness_params_pos(self):
         return self._loudness_params_pos
@@ -270,6 +282,7 @@ class Bext:
         chunk += struct.pack('<h', self._max_momentary_loudness)
         chunk += struct.pack('<h', self._max_short_term_loudness)
         return chunk
+
 
 class Chna:
     def __init__(self):
@@ -378,10 +391,10 @@ class Wave_read:
         self._file = Chunk(file, bigendian=0)
         # ** Check for RF64 header
         # ** If present, read special chunk
-        if self._file.getname() not in ['RIFF', 'RF64']:#** Support RF64
-            raise Error, 'file does not start with RIFF id'
-        if self._file.read(4) != 'WAVE':
-            raise Error, 'not a WAVE file'
+        if self._file.getname() not in [b'RIFF', b'RF64']:  # ** Support RF64
+            raise Error('file does not start with RIFF id')
+        if self._file.read(4) != b'WAVE':
+            raise Error('not a WAVE file')
         self._fmt_chunk_read = 0
         self._data_chunk = None
         self._bext_chunk = None
@@ -393,7 +406,7 @@ class Wave_read:
         self._chna = Chna()
 
         # Check for RF64
-        if self._file.getname() == 'RF64':
+        if self._file.getname() == b'RF64':
             self._RF64 = True
             ds64 = Chunk(self._file, bigendian=0)
             self._read_ds64_chunk(ds64)
@@ -413,35 +426,35 @@ class Wave_read:
             except EOFError:
                 break
             chunkname = chunk.getname()
-            if chunkname == 'fmt ':
+            if chunkname == b'fmt ':
                 self._read_fmt_chunk(chunk)
                 self._fmt_chunk_read = 1
-            elif chunkname == 'data':
+            elif chunkname == b'data':
                 # ** RF64 check real length
                 if not self._fmt_chunk_read:
-                    raise Error, 'data chunk before fmt chunk'
+                    raise Error('data chunk before fmt chunk')
                 self._data_chunk = chunk
                 self._nframes = chunk.chunksize // self._framesize  # ** Chunksize may be FFFFFFFF read real length from separate chunk
                 self._data_seek_needed = 0
                 # break
-            elif chunkname == "bext":
+            elif chunkname == b'bext':
                 self._bext_chunk = chunk
-            elif chunkname == "axml":
+            elif chunkname == b'axml':
                 self._axml_chunk = chunk
-            elif chunkname == "MD5 ":
+            elif chunkname == b'MD5 ':
                 self._md5_chunk = chunk
-            elif chunkname == "levl":
+            elif chunkname == b'levl':
                 self._levl_chunk = chunk
-            elif chunkname == "chna":
+            elif chunkname == b'chna':
                 self._chna_chunk = chunk
             chunk.skip()
         if not self._fmt_chunk_read or not self._data_chunk:
-            raise Error, 'fmt chunk and/or data chunk missing'
+            raise Error('fmt chunk and/or data chunk missing')
 
     def __init__(self, f):
         self._i_opened_the_file = None
-        if isinstance(f, basestring):
-            f = __builtin__.open(f, 'rb')
+        if isinstance(f, str):
+            f = builtins.open(f, 'rb')
             self._i_opened_the_file = f
         # else, assume it is an open file object already
         try:
@@ -499,11 +512,11 @@ class Wave_read:
         return None
 
     def getmark(self, id):
-        raise Error, 'no marks'
+        raise Error('no marks')
 
     def setpos(self, pos):
         if pos < 0 or pos > self._nframes:
-            raise Error, 'position not in range'
+            raise Error('position not in range')
         self._soundpos = pos
         self._data_seek_needed = 1
 
@@ -515,27 +528,27 @@ class Wave_read:
                 self._data_chunk.seek(pos, 0)
             self._data_seek_needed = 0
         if nframes == 0:
-            return ''
-        if self._sampwidth > 1 and big_endian:
-            # unfortunately the fromfile() method does not take
-            # something that only looks like a file object, so
-            # we have to reach into the innards of the chunk object
-            import array
-            chunk = self._data_chunk
-            data = array.array(_array_fmts[self._sampwidth])
-            nitems = nframes * self._nchannels
-            if nitems * self._sampwidth > chunk.chunksize - chunk.size_read:
-                nitems = (chunk.chunksize - chunk.size_read) / self._sampwidth
-            data.fromfile(chunk.file.file, nitems)
-            # "tell" data chunk how much was read
-            chunk.size_read = chunk.size_read + nitems * self._sampwidth
-            # do the same for the outermost chunk
-            chunk = chunk.file
-            chunk.size_read = chunk.size_read + nitems * self._sampwidth
-            data.byteswap()
-            data = data.tostring()
-        else:
-            data = self._data_chunk.read(nframes * self._framesize)
+            return b''
+        data = self._data_chunk.read(nframes * self._framesize)
+        if self._sampwidth != 1 and sys.byteorder == 'big':
+            data = audioop.byteswap(data, self._sampwidth)
+            # # unfortunately the fromfile() method does not take
+            # # something that only looks like a file object, so
+            # # we have to reach into the innards of the chunk object
+            # import array
+            # chunk = self._data_chunk
+            # data = array.array(_array_fmts[self._sampwidth])
+            # nitems = nframes * self._nchannels
+            # if nitems * self._sampwidth > chunk.chunksize - chunk.size_read:
+            #     nitems = (chunk.chunksize - chunk.size_read) / self._sampwidth
+            # data.fromfile(chunk.file.file, nitems)
+            # # "tell" data chunk how much was read
+            # chunk.size_read = chunk.size_read + nitems * self._sampwidth
+            # # do the same for the outermost chunk
+            # chunk = chunk.file
+            # chunk.size_read = chunk.size_read + nitems * self._sampwidth
+            # data.byteswap()
+            # data = data.tostring()
         if self._convert and data:
             data = self._convert(data)
         self._soundpos = self._soundpos + len(data) // (self._nchannels * self._sampwidth)
@@ -594,7 +607,7 @@ class Wave_read:
         return self._bext.pack_chunk()
 
     def read_axml(self):
-        if self._axml_chunk != None:
+        if self._axml_chunk is not None:
             self._axml_chunk.seek(0, 0)
         else:
             return False
@@ -602,7 +615,7 @@ class Wave_read:
         return data
 
     def read_md5(self):
-        if self._md5_chunk != None:
+        if self._md5_chunk is not None:
             self._md5_chunk.seek(0, 0)
         else:
             return False
@@ -610,7 +623,7 @@ class Wave_read:
         return data
 
     def read_levl(self):
-        if self._levl_chunk != None:
+        if self._levl_chunk is not None:
             self._levl_chunk.seek(0, 0)
         else:
             return False
@@ -645,11 +658,11 @@ class Wave_read:
             sampwidth, cbSize = struct.unpack('<hh', chunk.read(4))
             self._sampwidth = (sampwidth + 7) // 8
             if cbSize != 22:
-                raise Error, 'WAVE_FORMAT_EXTENSIBLE format, wrong cbSize: %r' % (cbSize)
+                raise Error('WAVE_FORMAT_EXTENSIBLE format, wrong cbSize: %r' % (cbSize))
             subFormat = [0, 0, 0, 0]
             wValidBitsPerSample, dwChannelMask, subFormat[0], subFormat[1], subFormat[2], subFormat[3] = struct.unpack('<hLLLLL', chunk.read(22))
         else:
-            raise Error, 'unknown format: %r' % (wFormatTag,)
+            raise Error('unknown format: %r' % (wFormatTag,))
         self._framesize = self._nchannels * self._sampwidth
         self._comptype = 'NONE'
         self._compname = 'not compressed'
@@ -687,8 +700,8 @@ class Wave_write:
 
     def __init__(self, f):
         self._i_opened_the_file = None
-        if isinstance(f, basestring):
-            f = __builtin__.open(f, 'wb')
+        if isinstance(f, str):
+            f = builtins.open(f, 'wb')
             self._i_opened_the_file = f
         try:
             self.initfp(f)
@@ -707,6 +720,7 @@ class Wave_write:
         self._nframeswritten = 0
         self._datawritten = 0
         self._datalength = 0
+
         self._bext_chunk_data = None
         self._axml_chunk_data = None
         self._md5_chunk_data = None
@@ -715,7 +729,15 @@ class Wave_write:
         self._bext = Bext()
         self._chna = Chna()
 
+        self._headerwritten = False
+
     def __del__(self):
+        self.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
         self.close()
 
     #
@@ -723,43 +745,43 @@ class Wave_write:
     #
     def setnchannels(self, nchannels):
         if self._datawritten:
-            raise Error, 'cannot change parameters after starting to write'
+            raise Error('cannot change parameters after starting to write')
         if nchannels < 1:
-            raise Error, 'bad # of channels'
+            raise Error('bad # of channels')
         self._nchannels = nchannels
 
     def getnchannels(self):
         if not self._nchannels:
-            raise Error, 'number of channels not set'
+            raise Error('number of channels not set')
         return self._nchannels
 
     def setsampwidth(self, sampwidth):
         if self._datawritten:
-            raise Error, 'cannot change parameters after starting to write'
+            raise Error('cannot change parameters after starting to write')
         if sampwidth < 1 or sampwidth > 4:
-            raise Error, 'bad sample width'
+            raise Error('bad sample width')
         self._sampwidth = sampwidth
 
     def getsampwidth(self):
         if not self._sampwidth:
-            raise Error, 'sample width not set'
+            raise Error('sample width not set')
         return self._sampwidth
 
     def setframerate(self, framerate):
         if self._datawritten:
-            raise Error, 'cannot change parameters after starting to write'
+            raise Error('cannot change parameters after starting to write')
         if framerate <= 0:
-            raise Error, 'bad frame rate'
-        self._framerate = framerate
+            raise Error('bad frame rate')
+        self._framerate = int(round(framerate))
 
     def getframerate(self):
         if not self._framerate:
-            raise Error, 'frame rate not set'
+            raise Error('frame rate not set')
         return self._framerate
 
     def setnframes(self, nframes):
         if self._datawritten:
-            raise Error, 'cannot change parameters after starting to write'
+            raise Error('cannot change parameters after starting to write')
         self._nframes = nframes
 
     def getnframes(self):
@@ -767,9 +789,9 @@ class Wave_write:
 
     def setcomptype(self, comptype, compname):
         if self._datawritten:
-            raise Error, 'cannot change parameters after starting to write'
+            raise Error('cannot change parameters after starting to write')
         if comptype not in ('NONE',):
-            raise Error, 'unsupported compression type'
+            raise Error('unsupported compression type')
         self._comptype = comptype
         self._compname = compname
 
@@ -779,9 +801,10 @@ class Wave_write:
     def getcompname(self):
         return self._compname
 
-    def setparams(self, (nchannels, sampwidth, framerate, nframes, comptype, compname)):
+    def setparams(self, params):
+        nchannels, sampwidth, framerate, nframes, comptype, compname = params
         if self._datawritten:
-            raise Error, 'cannot change parameters after starting to write'
+            raise Error('cannot change parameters after starting to write')
         self.setnchannels(nchannels)
         self.setsampwidth(sampwidth)
         self.setframerate(framerate)
@@ -790,15 +813,15 @@ class Wave_write:
 
     def getparams(self):
         if not self._nchannels or not self._sampwidth or not self._framerate:
-            raise Error, 'not all parameters set'
-        return self._nchannels, self._sampwidth, self._framerate, \
-              self._nframes, self._comptype, self._compname
+            raise Error('not all parameters set')
+        return _wave_params(self._nchannels, self._sampwidth, self._framerate,
+                            self._nframes, self._comptype, self._compname)
 
     def setmark(self, id, pos, name):
-        raise Error, 'setmark() not supported'
+        raise Error('setmark() not supported')
 
     def getmark(self, id):
-        raise Error, 'no marks'
+        raise Error('no marks')
 
     def getmarkers(self):
         return None
@@ -807,42 +830,48 @@ class Wave_write:
         return self._nframeswritten
 
     def writeframesraw(self, data):
+        if not isinstance(data, (bytes, bytearray)):
+            data = memoryview(data).cast('B')
         self._ensure_header_written(len(data))
         nframes = len(data) // (self._sampwidth * self._nchannels)
         if self._convert:
             data = self._convert(data)
-        if self._sampwidth > 1 and big_endian:
-            import array
-            data = array.array(_array_fmts[self._sampwidth], data)
-            data.byteswap()
-            data.tofile(self._file)
-            self._datawritten = self._datawritten + len(data) * self._sampwidth
-        else:
-            self._file.write(data)
-            self._datawritten = self._datawritten + len(data)
+
+        if self._sampwidth != 1 and sys.byteorder == 'big':
+            data = audioop.byteswap(data, self._sampwidth)
+
+        self._file.write(data)
+        self._datawritten += len(data)
         self._nframeswritten = self._nframeswritten + nframes
 
     def writeframes(self, data):
         self.writeframesraw(data)
-        #if self._datalength != self._datawritten:
-        self._patchheader()
+        if self._datalength != self._datawritten:
+            self._patchheader()
 
     def close(self):
-        if self._file:
-            self._ensure_header_written(0)
-            #if self._datalength != self._datawritten:
-            self._patchheader()
-            if self._axml_chunk_data:
-                self._write_axml_chunk()
-            if self._levl_chunk_data:
-                self._write_levl_chunk()
-            if self._md5_chunk_data:
-                self._write_md5_chunk()
-            self._file.flush()
+        try:
+            if self._file:
+                self._ensure_header_written(0)
+                # if self._datalength != self._datawritten:
+                self._patchheader()
+                if self._axml_chunk_data:
+                    self._write_axml_chunk()
+                if self._levl_chunk_data:
+                    self._write_levl_chunk()
+                if self._md5_chunk_data:
+                    self._write_md5_chunk()
+                self._file.flush()
+        finally:
             self._file = None
-        if self._i_opened_the_file:
-            self._i_opened_the_file.close()
-            self._i_opened_the_file = None
+            file = self._i_opened_the_file
+            if file:
+                self._i_opened_the_file = None
+                file.close()
+
+    #
+    # This is the expansion to support BWF/LEVL/RF64
+    #
 
     def set_bext_description(self, val):
         self._bext._description = val
@@ -889,20 +918,22 @@ class Wave_write:
         self._bext._coding_history = val
 
     def set_bext(self):
-        if self._bext._coding_history == '':
-            self._bext.generate_coding_history(self._framerate, self._sampwidth, self._nchannels)
+        if self._bext._coding_history == b'':
+            self._bext.generate_coding_history(self._framerate,
+                                               self._sampwidth, self._nchannels)
         self._bext_chunk_data = self._bext.pack_chunk()
 
     def update_bext_coding_history(self):
-        """This will update an existing bext coding history chunk with a new line."""
+        """Update an existing bext coding history chunk with a new line."""
         old_history = self._bext._coding_history
-        self._bext.generate_coding_history(self._framerate, self._sampwidth, self._nchannels)
+        self._bext.generate_coding_history(self._framerate, self._sampwidth,
+                                           self._nchannels)
         history_addition = self._bext._coding_history
         # Only add a newline to the old one if it didn't have one
-        if old_history.endswith('\r\n'):
+        if old_history.endswith(b'\r\n'):
             self._bext._coding_history = old_history + history_addition
         else:
-            self.bext._coding_history = old_history + '\r\n' + history_addition
+            self.bext._coding_history = old_history + b'\r\n' + history_addition
 
     def copy_bext(self, _bext_chunk):
         self._bext_chunk_data = _bext_chunk
@@ -910,17 +941,17 @@ class Wave_write:
     def set_axml(self, data):
         self._axml_chunk_data = data
         if (len(self._axml_chunk_data) % 2) == 1:
-            self._axml_chunk_data += ' '
+            self._axml_chunk_data += b' '
 
     def set_md5(self, data):
         self._md5_chunk_data = data
         if (len(self._md5_chunk_data) % 2) == 1:
-            self._md5_chunk_data += ' '
+            self._md5_chunk_data += b' '
 
     def set_levl(self, data):
         self._levl_chunk_data = data
         if (len(self._levl_chunk_data) % 2) == 1:
-            self._levl_chunk_data += ' '#Vet ikke om denne behøves
+            self._levl_chunk_data += b' '  # Vet ikke om denne behøves
 
     def chna_add_new_track(self, track_idx, track_uid, track_ref, pack_ref):
         self._chna.add_new_track(track_idx, track_uid, track_ref, pack_ref)
@@ -936,69 +967,84 @@ class Wave_write:
     #
 
     def _ensure_header_written(self, datasize):
-        if not self._datawritten:
+        # if not self._datawritten:
+        if not self._headerwritten:
             if not self._nchannels:
-                raise Error, '# channels not specified'
+                raise Error('# channels not specified')
             if not self._sampwidth:
-                raise Error, 'sample width not specified'
+                raise Error('sample width not specified')
             if not self._framerate:
-                raise Error, 'sampling rate not specified'
+                raise Error('sampling rate not specified')
+
             self._write_header(datasize)
             if self._bext_chunk_data:
                 self._write_bext_chunk()
             if self._chna_chunk_data:
                 self._write_chna_chunk()
+
             self._write_data_header()
 
     def _write_header(self, initlength):
-        #*** MOD
+        # *** MOD
+        assert not self._headerwritten
         if not self._nframes:
             self._nframes = initlength / (self._nchannels * self._sampwidth)
         self._datalength = self._nframes * self._nchannels * self._sampwidth
-        if self._datalength > 2140483647: # eg 2147483647 - some space for other chunks
-            self._type = 'RF64'
-            self._file.write('RF64')
+
+        # RF64 territory
+        if self._datalength > 2140483647:  # eg 2147483647 - some space for other chunks
+            self._type = b'RF64'
+            self._file.write(b'RF64')
             self._form_length_pos = self._file.tell()
             self._file.write(struct.pack('<l', -1))
-            self._file.write('WAVE')
+            self._file.write(b'WAVE')
             self._form_length_pos = self._file.tell()
             self._write_ds64_header()
             self._write_fmt()
         else:
-            self._type = 'RIFF'
-            self._file.write('RIFF')
+            self._type = b'RIFF'
+            self._file.write(b'RIFF')
             self._form_length_pos = self._file.tell()
-            self._file.write(struct.pack('<l4s',
-                36 + self._datalength, 'WAVE'))
+            self._file.write(struct.pack('<L4s',
+                                         36 + self._datalength, b'WAVE'))
             self._write_fmt()
-        #Add
+
+        self._headerwritten = True
+
+    # Add
     def _write_ds64_header(self, new_size=None):
         if not new_size:
-            self._file.write(struct.pack('<4slqqql', 'ds64', 28, self._datalength + 36 + 36, self._datalength, self._nframes, 0))
+            self._file.write(struct.pack(
+                '<4slqqql', b'ds64', 28, self._datalength + 36 + 36,
+                self._datalength, self._nframes, 0))
         else:
-            self._file.write(struct.pack('<4slqqql', 'ds64', 28, new_size + 36, self._datawritten, self._nframes, 0))
-            #Add 36 byte for ds64 header
+            self._file.write(struct.pack(
+                '<4slqqql', b'ds64', 28, new_size + 36,
+                self._datawritten, self._nframes, 0))
+
+            # Add 36 byte for ds64 header
 
     def _write_fmt(self):
         self._file.write(struct.pack('<4slhhllhh',
-                'fmt ', 16,
-                WAVE_FORMAT_PCM, self._nchannels, self._framerate,
-                self._nchannels * self._framerate * self._sampwidth,
-                self._nchannels * self._sampwidth,
-                self._sampwidth * 8))
+                                     b'fmt ', 16,
+                                     WAVE_FORMAT_PCM, self._nchannels, self._framerate,
+                                     self._nchannels * self._framerate * self._sampwidth,
+                                     self._nchannels * self._sampwidth,
+                                     self._sampwidth * 8))
 
     def _write_data_header(self):
-        self._file.write(struct.pack('<4s', 'data'))
+        self._file.write(struct.pack('<4s', b'data'))
         self._data_length_pos = self._file.tell()
-        if self._type == 'RF64':
+        if self._type == b'RF64':
             self._file.write(struct.pack('<l', -1))
         else:
             self._file.write(struct.pack('<l', self._datalength))
 
     def _patchheader(self):
-        #if self._datawritten == self._datalength:
+        # if self._datawritten == self._datalength:
         #    return
-        #Mask values before struct.pack & 0xFFFFFFFF
+        # Mask values before struct.pack & 0xFFFFFFFF
+        assert self._headerwritten
         curpos = self._file.tell()
         self._file.seek(self._form_length_pos, 0)
         new_size = 36                  # fmt chunk size
@@ -1013,7 +1059,7 @@ class Wave_write:
             new_size += len(self._md5_chunk_data) + 8
         if self._levl_chunk_data:           # levl chunk size
             new_size += len(self._levl_chunk_data) + 8
-        if self._type == 'RF64':
+        if self._type == b'RF64':
             self._write_ds64_header(new_size)
         else:
             self._file.write(struct.pack('<l', new_size))
@@ -1026,28 +1072,28 @@ class Wave_write:
         self._datalength = self._datawritten
 
     def _write_bext_chunk(self):
-        self._file.write(struct.pack('<4s', 'bext'))
+        self._file.write(struct.pack('<4s', b'bext'))
         self._file.write(struct.pack('<l', len(self._bext_chunk_data)))
         self._loudness_params_pos = self._bext.loudness_params_pos() + self._file.tell()
         self._file.write(self._bext_chunk_data)
 
     def _write_axml_chunk(self):
-        self._file.write(struct.pack('<4s', 'axml'))
+        self._file.write(struct.pack('<4s', b'axml'))
         self._file.write(struct.pack('<l', len(self._axml_chunk_data)))
         self._file.write(self._axml_chunk_data)
 
     def _write_md5_chunk(self):
-        self._file.write(struct.pack('<4s', 'MD5 '))
+        self._file.write(struct.pack('<4s', b'MD5 '))
         self._file.write(struct.pack('<l', 16))
         self._file.write(struct.pack('>16s', self._md5_chunk_data[::-1]))
 
     def _write_levl_chunk(self):
-        self._file.write(struct.pack('<4s', 'levl'))
+        self._file.write(struct.pack('<4s', b'levl'))
         self._file.write(struct.pack('<l', len(self._levl_chunk_data)))
         self._file.write(self._levl_chunk_data)
 
     def _write_chna_chunk(self):
-        self._file.write(struct.pack('<4s', 'chna'))
+        self._file.write(struct.pack('<4s', b'chna'))
         self._file.write(struct.pack('<l', len(self._chna_chunk_data)))
         self._file.write(self._chna_chunk_data)
 
@@ -1063,6 +1109,7 @@ def open(f, mode=None):
     elif mode in ('w', 'wb'):
         return Wave_write(f)
     else:
-        raise Error, "mode must be 'r', 'rb', 'w', or 'wb'"
+        raise Error("mode must be 'r', 'rb', 'w', or 'wb'")
 
-openfp = open # B/W compatibility
+
+openfp = open  # B/W compatibility

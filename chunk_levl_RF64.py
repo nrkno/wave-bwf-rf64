@@ -64,8 +64,10 @@ specifies whether or not chunks are aligned on 2-byte boundaries.  The
 default is 1, i.e. aligned.
 """
 
+
 class Chunk:
-    def __init__(self, file, align=True, bigendian=True, inclheader=False, set_data_chunk_size=None):
+    def __init__(self, file, align=True, bigendian=True, inclheader=False,
+                 set_data_chunk_size=None):
         import struct
         self.closed = False
         self.align = align      # whether to align to word (2-byte) boundaries
@@ -77,9 +79,9 @@ class Chunk:
         self.chunkname = file.read(4)
         if len(self.chunkname) < 4:
             raise EOFError
-        if not set_data_chunk_size is None and self.chunkname == 'data':
+        if set_data_chunk_size is not None and self.chunkname == b'data':
             self.chunksize = set_data_chunk_size
-            #Read dummy value
+            # Read dummy value
             struct.unpack(strflag+'L', file.read(4))
         else:
             try:
@@ -87,7 +89,7 @@ class Chunk:
             except struct.error:
                 raise EOFError
         if inclheader:
-            self.chunksize = self.chunksize - 8 # subtract header
+            self.chunksize = self.chunksize - 8  # subtract header
         self.size_read = 0
         try:
             self.offset = self.file.tell()
@@ -105,17 +107,19 @@ class Chunk:
         return self.chunksize
 
     def setsize(self, newsize):
-        #***
+        # ***
         self.chunksize = newsize
 
     def close(self):
         if not self.closed:
-            self.skip()
-            self.closed = True
+            try:
+                self.skip()
+            finally:
+                self.closed = True
 
     def isatty(self):
         if self.closed:
-            raise ValueError, "I/O operation on closed file"
+            raise ValueError('I/O operation on closed file')
         return False
 
     def seek(self, pos, whence=0):
@@ -125,34 +129,35 @@ class Chunk:
         """
 
         if self.closed:
-            raise ValueError, "I/O operation on closed file"
+            raise ValueError('I/O operation on closed file')
         if not self.seekable:
-            raise IOError, "cannot seek"
+            raise IOError('cannot seek')
         if whence == 1:
             pos = pos + self.size_read
         elif whence == 2:
             pos = pos + self.chunksize
         if pos < 0 or pos > self.chunksize:
-            print pos, self.chunksize
+            # print(pos, self.chunksize)
             raise RuntimeError
         self.file.seek(self.offset + pos, 0)
         self.size_read = pos
 
     def tell(self):
         if self.closed:
-            raise ValueError, "I/O operation on closed file"
+            raise ValueError('I/O operation on closed file')
         return self.size_read
 
     def read(self, size=-1):
         """Read at most size bytes from the chunk.
+
         If size is omitted or negative, read until the end
         of the chunk.
         """
 
         if self.closed:
-            raise ValueError, "I/O operation on closed file"
+            raise ValueError('I/O operation on closed file')
         if self.size_read >= self.chunksize:
-            return ''
+            return b''
         if size < 0:
             size = self.chunksize - self.size_read
         if size > self.chunksize - self.size_read:
@@ -168,13 +173,14 @@ class Chunk:
 
     def skip(self):
         """Skip the rest of the chunk.
+
         If you are not interested in the contents of the chunk,
         this method should be called so that the file points to
         the start of the next chunk.
         """
 
         if self.closed:
-            raise ValueError, "I/O operation on closed file"
+            raise ValueError('I/O operation on closed file')
         if self.seekable:
             try:
                 n = self.chunksize - self.size_read
