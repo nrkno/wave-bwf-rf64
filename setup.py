@@ -8,12 +8,12 @@ setup(name='wave_bwf_levl_RF64',
       This work was done by Tormod Værvågen of NRK (Norsk rikskringkasing).',
       classifiers=[
           'Development Status :: 3 :: Beta',
-          'Development Status :: 2 :: Beta',
-          'Programming Language :: Python :: 2.7',
           'Programming Language :: Python :: 3.5',
       ],
       url='http://data.bbcarp.org.uk/saqas/',
       author='David Marston',
       author_email='david.marston@bbc.co.uk',
       license="GNU GPLv3",
-      py_modules=['wave_bwf_levl_RF64', 'chunk_levl_RF64'],)
+      py_modules=['wave_bwf_levl_RF64', 'chunk_levl_RF64'],
+      python_requires=">=3.5",
+      )
