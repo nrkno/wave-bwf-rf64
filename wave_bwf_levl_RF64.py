@@ -933,7 +933,7 @@ class Wave_write:
         if old_history.endswith(b'\r\n'):
             self._bext._coding_history = old_history + history_addition
         else:
-            self.bext._coding_history = old_history + b'\r\n' + history_addition
+            self._bext._coding_history = old_history + b'\r\n' + history_addition
 
     def copy_bext(self, _bext_chunk):
         self._bext_chunk_data = _bext_chunk
