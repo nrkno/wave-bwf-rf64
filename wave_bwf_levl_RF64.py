@@ -125,7 +125,7 @@ is destroyed.
 # import __builtin__
 import builtins
 
-__all__ = ["open", "openfp", "Error"]
+__all__ = ["open", "openfp", "Error", "R64mMarker"]
 
 import dataclasses
 import enum
