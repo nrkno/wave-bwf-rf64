@@ -11,3 +11,5 @@ local_dev--dockerize.sh
 .idea
 dist/
 *.egg-info/
+/.pytest_cache/
+/venv/

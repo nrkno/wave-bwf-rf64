@@ -125,7 +125,18 @@ is destroyed.
 # import __builtin__
 import builtins
 
-__all__ = ["open", "openfp", "Error"]
+__all__ = ["open", "openfp", "Error", "R64mMarker"]
+
+import dataclasses
+import enum
+import typing
+import audioop
+import struct
+import sys
+
+from chunk_levl_RF64 import Chunk
+from collections import namedtuple
+import datetime
 
 
 class Error(Exception):
@@ -140,13 +151,6 @@ WAVE_FORMAT_EXTENSIBLE = 0xFFFE
 
 _array_fmts = None, 'b', 'h', None, 'l'
 
-import audioop
-import struct
-import sys
-
-from chunk_levl_RF64 import Chunk
-from collections import namedtuple
-from datetime import datetime
 
 _wave_params = namedtuple('_wave_params',
                           'nchannels sampwidth framerate nframes comptype compname')
@@ -157,7 +161,7 @@ class Bext:
         self._description = None
         self._originator = None
         self._originator_reference = None
-        now = datetime.now()
+        now = datetime.datetime.now()
         self._origination_date = [now.year, now.month, now.day]
         self._origination_time = [now.hour, now.minute, now.second]
         self._time_reference = [0, 0]
@@ -354,6 +358,66 @@ class Chna:
             self._ch_id.append(ch_id)
 
 
+@dataclasses.dataclass
+class R64mMarker:
+    sample_offset: int
+    time_offset: datetime.timedelta
+    label: str
+
+
+class RawR64mMarkerEntry(typing.NamedTuple):
+    flags: int
+    sample_offset: int
+    byte_offset: int
+    intra_sample_offset: int
+    label_text: bytes
+    label_chunk_identifier: int
+    vendor_and_product: bytes
+    user_data_1: int
+    user_data_2: int
+    user_data_3: int
+    user_data_4: int
+
+
+class MarkerEntryFlags(enum.Flag):
+    ENTRY_IS_VALID = enum.auto()
+    BYTE_OFFSET_IS_VALID = enum.auto()
+    INTRA_SAMPLE_OFFSET_IS_VALID = enum.auto()
+    LABEL_IS_IN_LABL_CHUNK = enum.auto()
+    LABEL_TEXT_IS_UTF_8 = enum.auto()
+
+
+class R64m:
+    def __init__(self):
+        self._markers: list[R64mMarker] = []
+
+    def read_markers(self):
+        return self._markers
+
+    def unpack_chunk(self, chunk: Chunk, sample_rate: int):
+        chunk.seek(0, 0)
+        chunk_size = chunk.getsize()
+        while chunk.tell() < chunk_size:
+            raw_values = struct.unpack("<L Q Q Q 256s L 16s 4L", chunk.read(320))
+            marker_entry = RawR64mMarkerEntry._make(raw_values)
+
+            flags = MarkerEntryFlags(marker_entry.flags)
+            if MarkerEntryFlags.ENTRY_IS_VALID not in flags:
+                continue
+
+            sample_offset = marker_entry.sample_offset
+            seconds_offset = sample_offset / sample_rate
+            time_offset = datetime.timedelta(seconds=seconds_offset)
+
+            if MarkerEntryFlags.LABEL_TEXT_IS_UTF_8 in flags:
+                encoding = "utf-8"
+            else:
+                encoding = "windows-1252"
+            label_until_null = marker_entry.label_text.rstrip(b'\x00')
+            label = label_until_null.decode(encoding)
+            self._markers.append(R64mMarker(sample_offset, time_offset, label))
+
+
 class Wave_read:
     """Variables used in this class:
 
@@ -402,8 +466,10 @@ class Wave_read:
         self._md5_chunk = None
         self._levl_chunk = None
         self._chna_chunk = None
+        self._r64m_chunk = None
         self._bext = Bext()
         self._chna = Chna()
+        self._r64m = R64m()
 
         # Check for RF64
         if self._file.getname() == b'RF64':
@@ -447,6 +513,8 @@ class Wave_read:
                 self._levl_chunk = chunk
             elif chunkname == b'chna':
                 self._chna_chunk = chunk
+            elif chunkname == b'r64m':
+                self._r64m_chunk = chunk
             chunk.skip()
         if not self._fmt_chunk_read or not self._data_chunk:
             raise Error('fmt chunk and/or data chunk missing')
@@ -644,6 +712,15 @@ class Wave_read:
             return False
         self._chna.unpack_chunk(self._chna_chunk)
         return True
+
+    def read_r64m(self):
+        if not self._r64m_chunk:
+            return False
+        self._r64m.unpack_chunk(self._r64m_chunk, self.getframerate())
+        return True
+
+    def get_r64m_markers(self):
+        return self._r64m.read_markers()
 
     #
     # Internal methods.
