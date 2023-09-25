@@ -1,0 +1,15 @@
+*~
+*.swp
+*.swo
+*.pyc
+sigmaIni.py
+.ropeproject*
+local_dev--dockerize.sh
+.dockerignore
+.cache
+.coverage
+.idea
+dist/
+*.egg-info/
+/.pytest_cache/
+/venv/
