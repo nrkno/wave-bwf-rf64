@@ -1,7 +1,7 @@
 Modules:
 
-chunk_levl_RF64.py            Original python module for handling RIFF chunks with extensions for handling RF64
-wave_bext_levl_RF64.py        Extension of original wave.py module with BWF handling added (bext, chna, axml, md5 and levl chunks).
+chunk.py            Original python module for handling RIFF chunks with extensions for handling RF64
+wave_bwf_rf64.py    Extension of original wave.py module with BWF handling added (bext, chna, axml, md5 and levl chunks).
 
 This package will give you the ability to work with both BWF and RF64 compatible wav-files in python.
 
@@ -15,9 +15,9 @@ this will produce a 'dist' directory containing the gunziped file that can be re
 
 To install modules:
 In 'dist':
-> tar -xzf wave_bwf_levl_RF64-1.0.6.tar.gz
+> tar -xzf wave_bwf_rf64-1.0.6.tar.gz
 > cd wave_bwf-1.0
 > sudo python setup.py install
 
 Or, which would be better:
-> pip install wave_bwf_levl_RF64-1.0.6.tar.gz
+> pip install wave_bwf_rf64-1.0.6.tar.gz
