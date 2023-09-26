@@ -3,7 +3,7 @@ import datetime
 
 import pytest
 
-import wave_bwf_levl_RF64
+import wave_bwf_rf64
 
 
 def test_reading_markers(markers_wavefile):
@@ -30,7 +30,7 @@ def test_reading_markers(markers_wavefile):
 def markers_wavefile():
     this_dir = pathlib.Path(__file__).parent
     filepath = this_dir / 'markers.wav'
-    wavefile = wave_bwf_levl_RF64.open(str(filepath), "rb")
+    wavefile = wave_bwf_rf64.open(str(filepath), "rb")
     try:
         yield wavefile
     finally:
