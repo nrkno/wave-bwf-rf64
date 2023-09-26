@@ -62,7 +62,9 @@ This project requires Python version 3.10 or higher.
 We use [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 The Semantic Versioning Specification requires that we declare a public API.
-We may introduce breaking changes outside of this public API without incrementing the major version.
+We may only introduce breaking changes to this public API if we simultaneously increment the major version.
+No such commitment is made for the parts of this project that are outside of the public API.
+
 The public API is:
 * `wave_bwf_rf64.open`
 * `wave_bwf_rf64.chunk.Chunk`
@@ -77,8 +79,8 @@ The public API is:
   * `Wave_read`
   * `Wave_write`
   * `open`
-* All methods and attributes of any classes mentioned above, where the method or attribute name does not start with an underscore (`_`)
-* All methods and attributes of any classes mentioned above, where the method or attribute name is a [system-defined name], i.e. their name starts and ends with two underscores (`__*__`)
+* All methods and attributes of any classes mentioned above, where the method or attribute name does not start with an underscore (`!= _*`)
+* All methods and attributes of any classes mentioned above, where the method or attribute name is a [system-defined name], i.e. their name starts and ends with two underscores (`== __*__`)
 
 [system-defined name]: https://docs.python.org/3/reference/datamodel.html#specialnames
 
@@ -89,8 +91,8 @@ This project is licensed under the GNU General Public License version 3 or later
 See [LICENSE](LICENSE) for details.
 
 `wave-bwf-rf64` is a modified version of BBC's `wave-bwf` project.
-The latter is no longer available.
-See [the changelog](CHANGELOG.md) for the history of this project, which spans back to 2014/2015.
+The latter is, to the best of our knowledge, no longer available.
+See the [changelog](CHANGELOG.md) for the history of this project, which spans back to 2014/2015.
 
 
 ## Known issues

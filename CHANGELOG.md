@@ -13,9 +13,9 @@ This is the first public release of NRK's fork of BBC's fork of the Python Stand
 
 ### Added
 
-- A proper `README.md`
-- Project metadata in `pyproject.toml`, a format which does not require execution of Python code
 - Semantic versioning
+- A proper `README.md`, including a declaration of which parts are considered our public API with respect to semantic versioning
+- Project metadata in `pyproject.toml`, a format which does not require execution of Python code
 
 ### Changed
 
