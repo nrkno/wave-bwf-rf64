@@ -1,7 +1,7 @@
-# -*- coding: utf-8 -*-
 """Stuff to parse WAVE files.
 
 Copyright 2014 British Broadcasting Corporation.
+Modified by NRK 2015-2023.
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -134,7 +134,7 @@ import audioop
 import struct
 import sys
 
-from chunk_levl_RF64 import Chunk
+from .chunk import Chunk
 from collections import namedtuple
 import datetime
 
@@ -1028,7 +1028,7 @@ class Wave_write:
     def set_levl(self, data):
         self._levl_chunk_data = data
         if (len(self._levl_chunk_data) % 2) == 1:
-            self._levl_chunk_data += b' '  # Vet ikke om denne behøves
+            self._levl_chunk_data += b' '  # Don't know if this is needed
 
     def chna_add_new_track(self, track_idx, track_uid, track_ref, pack_ref):
         self._chna.add_new_track(track_idx, track_uid, track_ref, pack_ref)
