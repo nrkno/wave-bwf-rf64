@@ -4,16 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "wave-bwf-rf64"
-version = "2.0.0"
+version = "2.0.1"
 description = "Python modules for handling the Broadcast Wave Format and RF64 files."
 license = { file = "LICENSE" }
+readme = "README.md"
 requires-python = ">=3.10"
-authors = [
-    { name = "David Marston", email = "david.marston@bbc.co.uk" },
-    { name = "Tormod Værvågen" },
-    { name = "John Arne Johnsen", email = "john.arne.johnsen@nrk.no" },
-    { name = "Thorben Werner Sjøstrøm Dahl", email = "thorben.dahl@nrk.no" },
-]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Programming Language :: Python :: 3.10",

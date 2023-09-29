@@ -125,6 +125,17 @@ Extension of the Python Standard Library's [wave module][wave] with BWF handling
 [wave]: https://docs.python.org/3.11/library/wave.html
 
 
+## Contributors
+
+Thank you to:
+
+* The Python Standard Library authors and contributors for the original `wave` and `chunk` modules
+* David Marston (BBC) for the Broadcast Wave File support
+* Tormod Værvågen (NRK) for the RF64 support and support for the `MD5` and `levl` chunks
+* John Arne Johnsen (NRK) for conversion to Python 3 and the addition of BEXT coding history field
+* Thorben Werner Sjøstrøm Dahl (NRK) for the support for the `r64m` chunk (when reading) and preparations before publication
+
+
 ## Todo
 
 * Incorporate changes made to the [chunk] and [wave] modules in the Python Standard Library after this fork was made

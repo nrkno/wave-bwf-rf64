@@ -10,6 +10,15 @@ The declaration of this project's public API can be found in the [`README.md`](R
 ## [Unreleased]
 
 
+## [2.0.1] - 2023-09-29
+
+This patch release contains no code changes.
+
+### Fixed
+
+- Improve how the project is presented on Pypi.org
+
+
 ## [2.0.0] - 2023-09-28
 
 This is the first public release of NRK's fork of BBC's fork of the Python Standard Library.
@@ -85,7 +94,8 @@ BBC's fork was public at the time, but has since been taken down.
 [wave]: https://docs.python.org/3.11/library/wave.html
 
 <!-- Links to GitHub diffs for all linked versions -->
-[unreleased]: https://github.com/nrkno/wave-bwf-rf64/compare/v2.0.0...HEAD
+[unreleased]: https://github.com/nrkno/wave-bwf-rf64/compare/v2.0.1...HEAD
+[2.0.1]: https://github.com/nrkno/wave-bwf-rf64/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/nrkno/wave-bwf-rf64/compare/v1.1.0...v2.0.0
 [1.1.0]: https://github.com/nrkno/wave-bwf-rf64/compare/v1.0.6...v1.1.0
 [1.0.6]: https://github.com/nrkno/wave-bwf-rf64/compare/v1.0.5...v1.0.6
