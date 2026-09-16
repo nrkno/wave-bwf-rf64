@@ -1,5 +1,6 @@
 """Stuff to parse WAVE files.
 
+Copyright 2001 Python Software Foundation. All rights reserved.
 Copyright 2014 British Broadcasting Corporation.
 Modified by NRK 2015-2023.
 
@@ -130,13 +131,29 @@ __all__ = ["open", "openfp", "Error", "R64mMarker"]
 import dataclasses
 import enum
 import typing
-import audioop
 import struct
 import sys
 
 from .chunk import Chunk
 from collections import namedtuple
 import datetime
+
+try:
+    # Use efficient implementation if using Python < 3.13, or a replacement pip package has been installed
+    from audioop import byteswap as _byteswap
+except (ImportError, DeprecationWarning):
+    # _byteswap is copied from CPython's wave.py implementation, at
+    # https://github.com/python/cpython/blob/823f0323ee6ec1402088b73bce1a38473cac36dc/Lib/wave.py#L96-L103
+    # It is licensed under the Python Software Foundation License Version 2, see PSF_LICENSE.
+    # Copyright (c) 2001 Python Software Foundation. All Rights Reserved
+    def _byteswap(data, width):
+        swapped_data = bytearray(len(data))
+
+        for i in range(0, len(data), width):
+            for j in range(width):
+                swapped_data[i + width - 1 - j] = data[i + j]
+
+        return bytes(swapped_data)
 
 
 class Error(Exception):
@@ -599,24 +616,7 @@ class Wave_read:
             return b''
         data = self._data_chunk.read(nframes * self._framesize)
         if self._sampwidth != 1 and sys.byteorder == 'big':
-            data = audioop.byteswap(data, self._sampwidth)
-            # # unfortunately the fromfile() method does not take
-            # # something that only looks like a file object, so
-            # # we have to reach into the innards of the chunk object
-            # import array
-            # chunk = self._data_chunk
-            # data = array.array(_array_fmts[self._sampwidth])
-            # nitems = nframes * self._nchannels
-            # if nitems * self._sampwidth > chunk.chunksize - chunk.size_read:
-            #     nitems = (chunk.chunksize - chunk.size_read) / self._sampwidth
-            # data.fromfile(chunk.file.file, nitems)
-            # # "tell" data chunk how much was read
-            # chunk.size_read = chunk.size_read + nitems * self._sampwidth
-            # # do the same for the outermost chunk
-            # chunk = chunk.file
-            # chunk.size_read = chunk.size_read + nitems * self._sampwidth
-            # data.byteswap()
-            # data = data.tostring()
+            data = _byteswap(data, self._sampwidth)
         if self._convert and data:
             data = self._convert(data)
         self._soundpos = self._soundpos + len(data) // (self._nchannels * self._sampwidth)
@@ -915,7 +915,7 @@ class Wave_write:
             data = self._convert(data)
 
         if self._sampwidth != 1 and sys.byteorder == 'big':
-            data = audioop.byteswap(data, self._sampwidth)
+            data = _byteswap(data, self._sampwidth)
 
         self._file.write(data)
         self._datawritten += len(data)

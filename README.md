@@ -94,6 +94,10 @@ See [LICENSE](LICENSE) for details.
 The latter is, to the best of our knowledge, no longer available.
 See the [changelog](CHANGELOG.md) for the history of this project, which spans back to 2014/2015.
 
+BBC's version is based on modules from the Python Standard Library,
+which is licensed under the [Python Software Foundation License Version 2](PSF_LICENSE) and
+copyright © 2001 Python Software Foundation. All rights reserved.
+
 
 ## Known issues
 
