@@ -1,5 +1,6 @@
 """Simple class to read IFF chunks.
 
+Copyright 2001 Python Software Foundation. All rights reserved.
 Copyright 2014 British Broadcasting Corporation.
 Modified by NRK 2015-2023.
 

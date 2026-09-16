@@ -9,6 +9,28 @@ The declaration of this project's public API can be found in the [`README.md`](R
 
 ## [Unreleased]
 
+This patch adds support for Python version 3.13 and above.
+
+### Added
+
+- Support for Python 3.13 and above
+- Copyright and license notices for the original code from the Python project
+
+### Changed
+
+- The `byteswap` function from `audioop` is replaced by a Python implementation when missing.
+  It will likely be slower than before.
+  
+  This function is used when reading or writing audio frames with a bytesize greater than 1
+  on a big-endian computer, so this probably does not affect you.
+  If it does, you can try installing a compatible Pypi package that provides `audioop`.
+
+  Note that this means that the deprecated `audioop` module will still be in use when you use Python <= 3.12.
+  The warning `DeprecationWarning: 'audioop' is deprecated and slated for removal in Python 3.13` will therefore still be emitted.
+  You can safely ignore this warning when it is emitted from this version of `wave_bwf_rf64.wave`.
+  To avoid the warning, you can configure Python to ignore or raise it instead of printing it, for example by starting Python
+  with `-W error::DeprecationWarning:wave_bwf_rf64.wave` .
+
 
 ## [2.0.1] - 2023-09-29
 
