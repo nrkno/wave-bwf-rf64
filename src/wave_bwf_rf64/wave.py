@@ -1065,7 +1065,7 @@ class Wave_write:
         # *** MOD
         assert not self._headerwritten
         if not self._nframes:
-            self._nframes = initlength / (self._nchannels * self._sampwidth)
+            self._nframes = initlength // (self._nchannels * self._sampwidth)
         self._datalength = self._nframes * self._nchannels * self._sampwidth
 
         # RF64 territory
