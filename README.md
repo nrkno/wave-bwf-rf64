@@ -111,7 +111,7 @@ copyright © 2001 Python Software Foundation. All rights reserved.
 
 ## Specifications
 
-* Primary specification: [Recommendation ITU-R BS.2088-1](https://www.itu.int/dms_pubrec/itu-r/rec/bs/R-REC-BS.2088-1-201910-I!!PDF-E.pdf)
+* Primary specification: [Recommendation ITU-R BS.2088](https://www.itu.int/rec/R-REC-BS.2088/en)
 * Superseded specification containing information on the RF64 marker chunk (r64m): [EBU-TECH 3306: MBWF/RF64: An extended File Format for Audio](https://tech.ebu.ch/docs/tech/tech3306v1_1.pdf)
 
 
