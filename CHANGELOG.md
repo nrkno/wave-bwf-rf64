@@ -29,7 +29,11 @@ This patch adds support for Python version 3.13 and above.
   The warning `DeprecationWarning: 'audioop' is deprecated and slated for removal in Python 3.13` will therefore still be emitted.
   You can safely ignore this warning when it is emitted from this version of `wave_bwf_rf64.wave`.
   To avoid the warning, you can configure Python to ignore or raise it instead of printing it, for example by starting Python
-  with `-W error::DeprecationWarning:wave_bwf_rf64.wave` .
+  with `-W error::DeprecationWarning:wave_bwf_rf64.wave` 
+
+### Fixed
+
+- Support for writing frames without calling `setnframes` first. This used to cause a crash
 
 
 ## [2.0.1] - 2023-09-29
