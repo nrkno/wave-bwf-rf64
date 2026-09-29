@@ -9,7 +9,13 @@ The declaration of this project's public API can be found in the [`README.md`](R
 
 ## [Unreleased]
 
-This patch adds support for Python version 3.13 and above.
+## [2.1.0] - 2026-09-30
+
+This minor release adds support for Python version 3.13 and above.
+
+If you are running Python 3.11 or 3.12, you will still get the warning
+`DeprecationWarning: 'audioop' is deprecated and slated for removal in Python 3.13`.
+It can be safely ignored.
 
 ### Added
 
@@ -18,22 +24,16 @@ This patch adds support for Python version 3.13 and above.
 
 ### Changed
 
-- The `byteswap` function from `audioop` is replaced by a Python implementation when missing.
-  It will likely be slower than before.
-  
-  This function is used when reading or writing audio frames with a bytesize greater than 1
-  on a big-endian computer, so this probably does not affect you.
-  If it does, you can try installing a compatible Pypi package that provides `audioop`.
+- Reading or writing audio frames with a bytesize greater than 1 on a big-endian computer will be slower
+  when the `audioop` module is missing, as it is on Python 3.13 or above.
+  This likely does not affect you, since most computers are little-endian.
 
-  Note that this means that the deprecated `audioop` module will still be in use when you use Python <= 3.12.
-  The warning `DeprecationWarning: 'audioop' is deprecated and slated for removal in Python 3.13` will therefore still be emitted.
-  You can safely ignore this warning when it is emitted from this version of `wave_bwf_rf64.wave`.
-  To avoid the warning, you can configure Python to ignore or raise it instead of printing it, for example by starting Python
-  with `-W error::DeprecationWarning:wave_bwf_rf64.wave` 
+  You can check your endianness by running `python3 -c 'import sys; print(sys.byteorder)'` and seeing if it prints `big` or `little`.
+  If it is big-endian, you can keep the same speed on Python 3.13 and above by installing a compatible Pypi package that provides `audioop`
 
 ### Fixed
 
-- Support for writing frames without calling `setnframes` first. This used to cause a crash
+- Crash when writing frames without calling `setnframes` first
 
 
 ## [2.0.1] - 2023-09-29
@@ -120,7 +120,8 @@ BBC's fork was public at the time, but has since been taken down.
 [wave]: https://docs.python.org/3.11/library/wave.html
 
 <!-- Links to GitHub diffs for all linked versions -->
-[unreleased]: https://github.com/nrkno/wave-bwf-rf64/compare/v2.0.1...HEAD
+[unreleased]: https://github.com/nrkno/wave-bwf-rf64/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/nrkno/wave-bwf-rf64/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/nrkno/wave-bwf-rf64/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/nrkno/wave-bwf-rf64/compare/v1.1.0...v2.0.0
 [1.1.0]: https://github.com/nrkno/wave-bwf-rf64/compare/v1.0.6...v1.1.0
