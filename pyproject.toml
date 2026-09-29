@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "wave-bwf-rf64"
-version = "2.1.0-rc0"
+version = "2.1.0"
 description = "Python modules for handling the Broadcast Wave Format and RF64 files."
 license = { file = "LICENSE" }
 readme = "README.md"
