@@ -16,3 +16,32 @@ def test_writing_frames_without_setting_nframes_first(tmp_path: pathlib.Path):
 
     # Assert
     assert wf.getnframes() == 3
+
+
+def test_writing_on_big_endian(tmp_path: pathlib.Path, monkeypatch):
+    # Arrange
+    filename = str(tmp_path / 'test_writing_on_big_endian.wav')
+
+    # Act
+    with monkeypatch.context() as m:
+        m.setattr(wave_bwf_rf64.wave.sys, 'byteorder', 'big')
+
+        wf = wave_bwf_rf64.open(filename, 'wb')
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(48_000)
+        wf.setnframes(3)
+
+        # These bytes should be swapped from big to little endian when writing
+        wf.writeframes(bytes.fromhex('00 01 00 02 00 03'))
+        wf.close()
+
+    # Assert
+    with monkeypatch.context() as m:
+        m.setattr(wave_bwf_rf64.wave.sys, 'byteorder', 'little')
+
+        wf = wave_bwf_rf64.open(filename, 'rb')
+
+        assert wf.readframes(3) == bytes.fromhex('01 00 02 00 03 00')
+
+        wf.close()
