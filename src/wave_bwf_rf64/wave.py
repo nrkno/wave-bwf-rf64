@@ -746,7 +746,13 @@ class Wave_read:
 
 
     def _read_ds64_chunk(self, chunk):
+        # In DS64 chunks, AVID pro tools may place data for tables subsequently even though tablelength has a value of 0.
+        # To skip unnecessary data, it skips unnecessary regions by skipping them according to the chunk size.
+        junktable_length = chunk.chunksize - 28
         self._riffSize, self.dataSize, self.sampleCount, self._tableLength = struct.unpack('<qqql', chunk.read(28))
+        if junktable_length:
+            # skipping unknown table data
+            chunk.read(junktable_length)
 
 
 class Wave_write:
